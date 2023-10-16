@@ -29,8 +29,11 @@
         private void InitializeComponent()
         {
             this.splitMainContainer = new System.Windows.Forms.SplitContainer();
+            this.Canvas = new System.Windows.Forms.PictureBox();
             ((System.ComponentModel.ISupportInitialize)(this.splitMainContainer)).BeginInit();
+            this.splitMainContainer.Panel1.SuspendLayout();
             this.splitMainContainer.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.Canvas)).BeginInit();
             this.SuspendLayout();
             // 
             // splitMainContainer
@@ -41,12 +44,28 @@
             this.splitMainContainer.Location = new System.Drawing.Point(0, 0);
             this.splitMainContainer.Name = "splitMainContainer";
             // 
+            // splitMainContainer.Panel1
+            // 
+            this.splitMainContainer.Panel1.Controls.Add(this.Canvas);
+            // 
             // splitMainContainer.Panel2
             // 
             this.splitMainContainer.Panel2.BackColor = System.Drawing.SystemColors.ControlLight;
             this.splitMainContainer.Size = new System.Drawing.Size(800, 450);
             this.splitMainContainer.SplitterDistance = 654;
             this.splitMainContainer.TabIndex = 0;
+            // 
+            // Canvas
+            // 
+            this.Canvas.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.Canvas.Location = new System.Drawing.Point(0, 0);
+            this.Canvas.Name = "Canvas";
+            this.Canvas.Size = new System.Drawing.Size(654, 450);
+            this.Canvas.TabIndex = 0;
+            this.Canvas.TabStop = false;
+            this.Canvas.Paint += new System.Windows.Forms.PaintEventHandler(this.Canvas_Paint);
+            this.Canvas.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Canvas_MouseDown);
+            this.Canvas.MouseMove += new System.Windows.Forms.MouseEventHandler(this.Canvas_MouseMove);
             // 
             // Form1
             // 
@@ -56,8 +75,10 @@
             this.Controls.Add(this.splitMainContainer);
             this.Name = "Form1";
             this.Text = "Form1";
+            this.splitMainContainer.Panel1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.splitMainContainer)).EndInit();
             this.splitMainContainer.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.Canvas)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -65,5 +86,6 @@
         #endregion
 
         private SplitContainer splitMainContainer;
+        public PictureBox Canvas;
     }
 }

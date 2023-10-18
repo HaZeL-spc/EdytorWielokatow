@@ -8,7 +8,7 @@ namespace FirstLab
         private Bitmap drawArea;
         private List<Point> points = new List<Point>();
         private List<Line> lines = new List<Line>();
-        private List<List<Point>> polygons = new List<List<Point>>();
+        public List<List<Point>> polygons = new List<List<Point>>();
         private const int RADIUS = 5;
         private Pen pen = new Pen(Color.Black, 2);
 
@@ -33,14 +33,21 @@ namespace FirstLab
                     // if clicked on another polygons' vertice
                     if (points.Count == 0)
                     {
-                        (int, int) cords = checkIfPoint(e.X, e.Y);
+                        (int, int) cords = checkIfVerticeClicked(e.X, e.Y);
 
                         if (cords.Item1 != -1)
                         {
                             polygons[cords.Item1][cords.Item2] = new Point(10, 20);
                             PictureBox pictureBox = (PictureBox)sender;
+
                             g.Clear(Color.White);
                             pictureBox.Invalidate();
+                            return;
+                        }
+
+                        int whichPolygonClicked = CheckWhichInsidePolygon(e.X, e.Y);
+                        if (whichPolygonClicked != -1)
+                        {
                             return;
                         }
                     }
@@ -48,21 +55,14 @@ namespace FirstLab
                     // drawing the line
                     if (points.Count > 2 && Math.Abs(e.X - points[0].X) < RADIUS && Math.Abs(e.Y - points[0].Y) < RADIUS)
                     {
-                        g.DrawLine(pen, points[points.Count - 1], points[0]);
                         polygons.Add(points);
                         points = new List<Point>();
-                    } else
+                    }
+                    else
                     {
                         // adding point
                         Point point = new Point(e.X, e.Y);
                         points.Add(point);
-                        g.FillEllipse(Brushes.Black, e.X - RADIUS, e.Y - RADIUS, RADIUS * 2, RADIUS * 2);
-
-                        if (points.Count > 1)
-                        {
-                            g.DrawLine(pen, points[points.Count - 2], points[points.Count - 1]);
-                            lines.Add(new Line(points[points.Count - 2], points[points.Count - 1]));
-                        }
                     }
                 }
                 Canvas.Refresh();
@@ -83,59 +83,111 @@ namespace FirstLab
             e.Graphics.DrawImage(drawArea, 0, 0);
             if (points.Count > 0)
             {
-                
+
                 g.DrawLine(pen, points[points.Count - 1], Canvas.PointToClient(Cursor.Position));
 
                 pen.Dispose();
             }
 
-
+            Point? previousPoint;
+            pen = new Pen(Color.Black, 2);
             foreach (var polygon in polygons)
             {
-                Point? previousPoint = null;
+                previousPoint = null;
+
                 foreach (var point in polygon)
                 {
                     g.FillEllipse(Brushes.Black, point.X - RADIUS, point.Y - RADIUS, RADIUS * 2, RADIUS * 2);
 
                     if (previousPoint != null)
-                    {
                         g.DrawLine(pen, previousPoint.Value, point);
-                    }
 
                     previousPoint = point;
                 }
 
                 g.DrawLine(pen, previousPoint.Value, polygon[0]);
             }
-        }
+            pen.Dispose();
+            pen = new Pen(Color.Black, 2);
 
-        private void CheckIfInsidePolygon(int x, int y)
-        {
-            int intersections = CountHorizontalLineIntersections(lines, y, x);
-        }
-
-        public static int CountHorizontalLineIntersections(List<Line> lines, int y, int x)
-        {
-            int intersectionCount = 0;
-
-            foreach (var line in lines)
+            previousPoint = null;
+            foreach (var point in points)
             {
-                int x1 = line.Start.X;
-                int y1 = line.Start.Y;
-                int x2 = line.End.X;
-                int y2 = line.End.Y;
+                g.FillEllipse(Brushes.Black, point.X - RADIUS, point.Y - RADIUS, RADIUS * 2, RADIUS * 2);
 
-                // Check if the line intersects the horizontal line
-                if ( y1 < y && y2 > y || y1 > y && y2 < y)
-                {
-                    intersectionCount++;
-                }
+                if (previousPoint != null)
+                    g.DrawLine(pen, previousPoint.Value, point);
+                previousPoint = point;
             }
 
-            return intersectionCount;
+            pen.Dispose();
         }
 
-        public (int, int) checkIfPoint(int x, int y)
+        public int CheckWhichInsidePolygon(int x, int y)
+        {
+            int[] polygonsIntersected = new int[polygons.Count];
+
+            Point? previousPoint;
+            int i = 0;
+            foreach (var polygon in polygons)
+            {
+                var copyPolygon = new List<Point>(polygon);
+                copyPolygon.Add(polygon[0]);
+
+                previousPoint = null;
+                foreach (var point in copyPolygon)
+                {
+
+                    if (previousPoint != null)
+                        if (TellIfIntersected(previousPoint.Value, point, x, y))
+                            polygonsIntersected[i]++;
+
+                    previousPoint = point;
+                }
+
+                i++;
+            }
+
+            for (i = 0; i < polygonsIntersected.Count(); i++)
+            {
+                if (polygonsIntersected[i] == 1)
+                    return i;
+            }
+
+
+            return -1;
+        }
+
+        public bool TellIfIntersected(Point point1, Point point2, int x, int y)
+        {
+            float x1 = point1.X;
+            float y1 = point1.Y;
+            float x2 = point2.X;
+            float y2 = point2.Y;
+
+            if (x < x1 && x < x2)  // line is on the right
+            {
+                if (y <= Math.Max(y1, y2) && y >= Math.Min(y1, y2))
+                    return true;
+            }
+            else if (x <= Math.Max(x1, x2) && x >= Math.Min(x1, x2)) // point is in between
+            {
+                y1 = -y1; y2 = -y2;
+                float a = (y2 - y1) / (x2 - x1);
+                float b = y1 - a * x1;
+                float valueY = a * x + b;
+
+                if (a > 0 && y > valueY)
+                    return true;
+                else if (a < 0 && y < valueY)
+                    return true;
+
+            }
+
+            return false;
+        }
+
+        public (int, int) checkIfVerticeClicked(int x, int y)
         {
             int i = 0;
             int j = 0;

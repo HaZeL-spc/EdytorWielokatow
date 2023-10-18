@@ -9,9 +9,13 @@ namespace FirstLab
         private Polygon points = new Polygon(new List<Point>());
         private List<Line> lines = new List<Line>();
         public List<Polygon> polygons = new List<Polygon>();
-        private const int RADIUS = 10;
+        public const int RADIUS = 10;
+        public const int LINE_ERROR = 5;
         private Pen pen = new Pen(Color.Black, 2);
         private Point previousMouse;
+        private bool mouseIsDown = false;
+        public (int, int) indexVerticeClicked = (-1, -1);
+        public int indexPolygonClicked = -1;
 
         public Form1()
         {
@@ -27,26 +31,39 @@ namespace FirstLab
 
         private void Canvas_MouseDown(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left)
+            if (e.Button == MouseButtons.Right)
             {
+                using (Graphics g = Graphics.FromImage(drawArea))
+                {
+                    if (points.Count() == 0)
+                    {
+                        int whichPolygonClicked = CheckWhichInsidePolygon(e.X, e.Y);
+
+                        if (whichPolygonClicked != -1)
+                            polygons.RemoveAt(whichPolygonClicked);
+                    }
+                }
+            }
+            else if (e.Button == MouseButtons.Left)
+            {
+                mouseIsDown = true;
                 using (Graphics g = Graphics.FromImage(drawArea))
                 {
                     // if clicked on another polygons' vertice
                     if (points.Count() == 0)
                     {
-                        (int, int) cords = checkIfVerticeClicked(e.X, e.Y);
+                        
+
+
+                        (int, int) cords = CheckIfVerticeClicked(e.X, e.Y);
 
                         if (cords.Item1 != -1)
-                        {
                             return;
-                        }
 
                         int whichPolygonClicked = CheckWhichInsidePolygon(e.X, e.Y);
 
                         if (whichPolygonClicked != -1)
-                        {
                             return;
-                        }
                     }
 
                     // drawing the line
@@ -70,24 +87,43 @@ namespace FirstLab
         {
             if (e.Button == MouseButtons.Left)
             {
+                mouseIsDown = true;
                 using (Graphics g = Graphics.FromImage(drawArea))
                 {
                     if (points.Count() == 0)
                     {
-                        (int, int) cords = checkIfVerticeClicked(e.X, e.Y);
-
-                        if (cords.Item1 != -1)
-                            polygons[cords.Item1][cords.Item2] = new Point(e.X, e.Y);
+                        if (indexVerticeClicked != (-1, -1))
+                        {
+                            polygons[indexVerticeClicked.Item1][indexVerticeClicked.Item2] = new Point(e.X, e.Y);
+                        }
+                        else if (indexPolygonClicked != -1)
+                        {
+                            polygons[indexPolygonClicked].movePolygon(e.X - previousMouse.X, e.Y - previousMouse.Y);
+                        }
                         else
                         {
-                            int whichPolygonClicked = CheckWhichInsidePolygon(e.X, e.Y);
+                            // first time clicking new vertice
+                            (int, int) cords = CheckIfVerticeClicked(e.X, e.Y);
 
-                            if (whichPolygonClicked != -1)
+                            if (cords.Item1 != -1)
                             {
+                                indexVerticeClicked = cords;
+                                polygons[cords.Item1][cords.Item2] = new Point(e.X, e.Y);
+                            }
 
-                                polygons[whichPolygonClicked].movePolygon(e.X - previousMouse.X, e.Y - previousMouse.Y);
+                            else
+                            {
+                                int whichPolygonClicked = CheckWhichInsidePolygon(e.X, e.Y);
+
+                                if (whichPolygonClicked != -1)
+                                {
+                                    indexPolygonClicked = whichPolygonClicked;
+                                    polygons[whichPolygonClicked].movePolygon(e.X - previousMouse.X, e.Y - previousMouse.Y);
+                                }
                             }
                         }
+
+
                     }
                 }
 
@@ -152,77 +188,54 @@ namespace FirstLab
             int i = 0;
             foreach (var polygon in polygons)
             {
-                var copyPolygon = new Polygon(polygon);
-                copyPolygon.AddToPolygon(polygon[0]);
+                int howManyTimes = polygon.CountHowManyTimeIntersected(x, y);
 
-                previousPoint = null;
-                foreach (var point in copyPolygon)
-                {
-
-                    if (previousPoint != null)
-                        if (TellIfIntersected(previousPoint.Value, point, x, y))
-                            polygonsIntersected[i]++;
-
-                    previousPoint = point;
-                }
+                if (howManyTimes % 2 == 1)
+                    return i;
 
                 i++;
-            }
-
-            for (i = 0; i < polygonsIntersected.Count(); i++)
-            {
-                if (polygonsIntersected[i] == 1)
-                    return i;
             }
 
             return -1;
         }
 
-        public bool TellIfIntersected(Point point1, Point point2, int x, int y)
-        {
-            float x1 = point1.X;
-            float y1 = point1.Y;
-            float x2 = point2.X;
-            float y2 = point2.Y;
 
-            if (x < x1 && x < x2)  // line is on the right
-            {
-                if (y <= Math.Max(y1, y2) && y >= Math.Min(y1, y2))
-                    return true;
-            }
-            else if (x <= Math.Max(x1, x2) && x >= Math.Min(x1, x2) && y <= Math.Max(y1, y2) && y >= Math.Min(y1, y2)) // point is in between
-            {
-                y1 = -y1; y2 = -y2; y = -y;
-                float a = (y2 - y1) / (x2 - x1);
-                float b = y1 - a * x1;
-                float valueY = a * x + b;
-
-                if (a > 0 && y > valueY)
-                    return true;
-                else if (a < 0 && y < valueY)
-                    return true;
-            }
-
-            return false;
-        }
-
-        public (int, int) checkIfVerticeClicked(int x, int y)
+        public (int, int) CheckIfVerticeClicked(int x, int y)
         {
             int i = 0;
-            int j = 0;
 
             foreach (var polygon in polygons)
             {
-                foreach (var point in polygon)
-                {
-                    if (Math.Abs(point.X - x) < RADIUS && Math.Abs(point.Y - y) < RADIUS)
-                        return (i, j);
-                    j++;
-                }
+                int whichVertice = polygon.checkWhichVerticeClicked(x, y);
+
+                if (whichVertice != -1)
+                    return (i, whichVertice);
                 i++;
             }
 
             return (-1, -1);
+        }
+
+        public (int, int) CheckIfLineClicked(int x, int y)
+        {
+            int i = 0;
+            
+            foreach (var polygon in polygons)
+            {
+                int whichLine = polygon.CheckWhichLineClicked(x, y);
+
+                if (whichLine != -1)
+                    return (i, whichLine);
+            }
+
+            return (-1, -1);
+        }
+
+        private void Canvas_MouseUp(object sender, MouseEventArgs e)
+        {
+            mouseIsDown = false;
+            indexVerticeClicked = (-1, -1);
+            indexPolygonClicked = -1;
         }
     }
 

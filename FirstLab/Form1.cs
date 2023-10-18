@@ -6,11 +6,12 @@ namespace FirstLab
     public partial class Form1 : Form
     {
         private Bitmap drawArea;
-        private List<Point> points = new List<Point>();
+        private Polygon points = new Polygon(new List<Point>());
         private List<Line> lines = new List<Line>();
-        public List<List<Point>> polygons = new List<List<Point>>();
-        private const int RADIUS = 5;
+        public List<Polygon> polygons = new List<Polygon>();
+        private const int RADIUS = 10;
         private Pen pen = new Pen(Color.Black, 2);
+        private Point previousMouse;
 
         public Form1()
         {
@@ -31,21 +32,17 @@ namespace FirstLab
                 using (Graphics g = Graphics.FromImage(drawArea))
                 {
                     // if clicked on another polygons' vertice
-                    if (points.Count == 0)
+                    if (points.Count() == 0)
                     {
                         (int, int) cords = checkIfVerticeClicked(e.X, e.Y);
 
                         if (cords.Item1 != -1)
                         {
-                            polygons[cords.Item1][cords.Item2] = new Point(10, 20);
-                            PictureBox pictureBox = (PictureBox)sender;
-
-                            g.Clear(Color.White);
-                            pictureBox.Invalidate();
                             return;
                         }
 
                         int whichPolygonClicked = CheckWhichInsidePolygon(e.X, e.Y);
+
                         if (whichPolygonClicked != -1)
                         {
                             return;
@@ -53,25 +50,50 @@ namespace FirstLab
                     }
 
                     // drawing the line
-                    if (points.Count > 2 && Math.Abs(e.X - points[0].X) < RADIUS && Math.Abs(e.Y - points[0].Y) < RADIUS)
+                    if (points.Count() > 2 && Math.Abs(e.X - points.polygon[0].X) < RADIUS && Math.Abs(e.Y - points.polygon[0].Y) < RADIUS)
                     {
                         polygons.Add(points);
-                        points = new List<Point>();
+                        points = new Polygon(new List<Point>());
                     }
                     else
                     {
                         // adding point
                         Point point = new Point(e.X, e.Y);
-                        points.Add(point);
+                        points.AddToPolygon(point);
                     }
                 }
-                Canvas.Refresh();
             }
 
         }
 
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
+            if (e.Button == MouseButtons.Left)
+            {
+                using (Graphics g = Graphics.FromImage(drawArea))
+                {
+                    if (points.Count() == 0)
+                    {
+                        (int, int) cords = checkIfVerticeClicked(e.X, e.Y);
+
+                        if (cords.Item1 != -1)
+                            polygons[cords.Item1][cords.Item2] = new Point(e.X, e.Y);
+                        else
+                        {
+                            int whichPolygonClicked = CheckWhichInsidePolygon(e.X, e.Y);
+
+                            if (whichPolygonClicked != -1)
+                            {
+
+                                polygons[whichPolygonClicked].movePolygon(e.X - previousMouse.X, e.Y - previousMouse.Y);
+                            }
+                        }
+                    }
+                }
+
+            }
+
+            previousMouse = new Point(e.X, e.Y);
             Canvas.Invalidate();
         }
 
@@ -81,10 +103,9 @@ namespace FirstLab
             Pen pen = new Pen(Color.Black, 2);
 
             e.Graphics.DrawImage(drawArea, 0, 0);
-            if (points.Count > 0)
+            if (points.Count() > 0)
             {
-
-                g.DrawLine(pen, points[points.Count - 1], Canvas.PointToClient(Cursor.Position));
+                g.DrawLine(pen, points[points.Count() - 1], Canvas.PointToClient(Cursor.Position));
 
                 pen.Dispose();
             }
@@ -131,8 +152,8 @@ namespace FirstLab
             int i = 0;
             foreach (var polygon in polygons)
             {
-                var copyPolygon = new List<Point>(polygon);
-                copyPolygon.Add(polygon[0]);
+                var copyPolygon = new Polygon(polygon);
+                copyPolygon.AddToPolygon(polygon[0]);
 
                 previousPoint = null;
                 foreach (var point in copyPolygon)
@@ -154,7 +175,6 @@ namespace FirstLab
                     return i;
             }
 
-
             return -1;
         }
 
@@ -170,9 +190,9 @@ namespace FirstLab
                 if (y <= Math.Max(y1, y2) && y >= Math.Min(y1, y2))
                     return true;
             }
-            else if (x <= Math.Max(x1, x2) && x >= Math.Min(x1, x2)) // point is in between
+            else if (x <= Math.Max(x1, x2) && x >= Math.Min(x1, x2) && y <= Math.Max(y1, y2) && y >= Math.Min(y1, y2)) // point is in between
             {
-                y1 = -y1; y2 = -y2;
+                y1 = -y1; y2 = -y2; y = -y;
                 float a = (y2 - y1) / (x2 - x1);
                 float b = y1 - a * x1;
                 float valueY = a * x + b;
@@ -181,7 +201,6 @@ namespace FirstLab
                     return true;
                 else if (a < 0 && y < valueY)
                     return true;
-
             }
 
             return false;

@@ -10,11 +10,12 @@ namespace FirstLab
         private List<Line> lines = new List<Line>();
         public List<Polygon> polygons = new List<Polygon>();
         public const int RADIUS = 10;
-        public const int LINE_ERROR = 5;
+        public const int LINE_ERROR = 15;
         private Pen pen = new Pen(Color.Black, 2);
         private Point previousMouse;
         private bool mouseIsDown = false;
         public (int, int) indexVerticeClicked = (-1, -1);
+        public (int, int) indexLineClicked = (-1, -1);
         public int indexPolygonClicked = -1;
 
         public Form1()
@@ -37,6 +38,15 @@ namespace FirstLab
                 {
                     if (points.Count() == 0)
                     {
+                        (int, int) coords = CheckIfVerticeClicked(e.X, e.Y);
+                        if (coords.Item1 != -1)
+                        {
+                            polygons[coords.Item1].Remove(coords.Item2);
+                            return;
+                        }
+                            
+
+
                         int whichPolygonClicked = CheckWhichInsidePolygon(e.X, e.Y);
 
                         if (whichPolygonClicked != -1)
@@ -52,8 +62,10 @@ namespace FirstLab
                     // if clicked on another polygons' vertice
                     if (points.Count() == 0)
                     {
-                        
+                        (int, int) coordsLine = CheckIfLineClicked(e.X, e.Y);
 
+                        if (coordsLine.Item1 != -1)
+                            return;
 
                         (int, int) cords = CheckIfVerticeClicked(e.X, e.Y);
 
@@ -66,15 +78,15 @@ namespace FirstLab
                             return;
                     }
 
-                    // drawing the line
                     if (points.Count() > 2 && Math.Abs(e.X - points.polygon[0].X) < RADIUS && Math.Abs(e.Y - points.polygon[0].Y) < RADIUS)
                     {
+                        // check if point already exists there
+
                         polygons.Add(points);
                         points = new Polygon(new List<Point>());
                     }
                     else
                     {
-                        // adding point
                         Point point = new Point(e.X, e.Y);
                         points.AddToPolygon(point);
                     }
@@ -93,13 +105,11 @@ namespace FirstLab
                     if (points.Count() == 0)
                     {
                         if (indexVerticeClicked != (-1, -1))
-                        {
                             polygons[indexVerticeClicked.Item1][indexVerticeClicked.Item2] = new Point(e.X, e.Y);
-                        }
+                        else if (indexLineClicked != (-1, -1))
+                            polygons[indexLineClicked.Item1].moveLine(indexLineClicked.Item2, e.X - previousMouse.X, e.Y - previousMouse.Y);
                         else if (indexPolygonClicked != -1)
-                        {
                             polygons[indexPolygonClicked].movePolygon(e.X - previousMouse.X, e.Y - previousMouse.Y);
-                        }
                         else
                         {
                             // first time clicking new vertice
@@ -110,20 +120,26 @@ namespace FirstLab
                                 indexVerticeClicked = cords;
                                 polygons[cords.Item1][cords.Item2] = new Point(e.X, e.Y);
                             }
-
                             else
                             {
-                                int whichPolygonClicked = CheckWhichInsidePolygon(e.X, e.Y);
+                                (int, int) coordsLine = CheckIfLineClicked(e.X, e.Y);
 
-                                if (whichPolygonClicked != -1)
+                                if (coordsLine != (-1, -1))
                                 {
-                                    indexPolygonClicked = whichPolygonClicked;
-                                    polygons[whichPolygonClicked].movePolygon(e.X - previousMouse.X, e.Y - previousMouse.Y);
+                                    indexLineClicked = coordsLine;
+                                    polygons[coordsLine.Item1].moveLine(coordsLine.Item2, e.X - previousMouse.X, e.Y - previousMouse.Y);
+                                } else
+                                {
+                                    int whichPolygonClicked = CheckWhichInsidePolygon(e.X, e.Y);
+
+                                    if (whichPolygonClicked != -1)
+                                    {
+                                        indexPolygonClicked = whichPolygonClicked;
+                                        polygons[whichPolygonClicked].movePolygon(e.X - previousMouse.X, e.Y - previousMouse.Y);
+                                    }
                                 }
                             }
                         }
-
-
                     }
                 }
 
@@ -236,6 +252,7 @@ namespace FirstLab
             mouseIsDown = false;
             indexVerticeClicked = (-1, -1);
             indexPolygonClicked = -1;
+            indexLineClicked = (-1, -1);
         }
     }
 

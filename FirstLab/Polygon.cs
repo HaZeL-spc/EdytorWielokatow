@@ -33,6 +33,15 @@ namespace FirstLab
             this.polygon = new List<Point>(newPolygon);
         }
 
+        public void moveLine(int index, int xMove, int yMove)
+        {
+            Point point1 = this.polygon[index];
+            Point point2 = this.polygon[(index + 1) % polygon.Count()];
+
+            this.polygon[index] = new Point(point1.X + xMove, point1.Y + yMove);
+            this.polygon[(index + 1) % polygon.Count()] = new Point(point2.X + xMove, point2.Y + yMove);
+        }
+
         public void AddToPolygon(Point point)
         {
             this.polygon.Add(point);
@@ -116,22 +125,24 @@ namespace FirstLab
             return -1;
         }
 
+
+
         public int CheckWhichLineClicked(int x, int y)
         {
             var copyPolygon = new Polygon(polygon);
             copyPolygon.AddToPolygon(polygon[0]);
             Point? previousPoint = null;
-            int i = 0;
+            int i = -1;
+            y = -y;
 
             foreach (var point in copyPolygon)
             {
                 if (previousPoint != null)
                 {
-                    y = -y;
                     (float a, float b) = CalculateLinearFunction(point.X, point.Y, previousPoint.Value.X, previousPoint.Value.Y);
+       
 
-                    float valueY = a * x + b;
-                    if (Math.Abs(valueY - y) <= Form1.LINE_ERROR)
+                    if (CalculateDistancePointLine(x, y, a, b) <= Form1.LINE_ERROR)
                         return i;
                 }
 
@@ -142,6 +153,14 @@ namespace FirstLab
             return -1;
         }
 
+        public static float CalculateDistancePointLine(int x, int y, float a, float b)
+        {
+            float numerator = Math.Abs(-a * x + y - b);
+            float denominator = (float)Math.Sqrt(Math.Pow(a, 2.0) + 1);
+
+            return numerator / denominator;
+        }
+
         public static (float, float) CalculateLinearFunction(float x1, float y1, float x2, float y2) 
         {
             y1 = -y1; y2 = -y2;
@@ -149,6 +168,12 @@ namespace FirstLab
             float b = y1 - a * x1;
 
             return (a, b);
+        }
+
+        public void Remove(int index)
+        {
+            if (polygon.Count() > 3)
+                this.polygon.RemoveAt(index);
         }
 
         public Point this[int index]

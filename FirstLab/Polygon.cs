@@ -8,10 +8,11 @@ using System.Threading.Tasks;
 
 namespace FirstLab
 {
-    public class Polygon:IEnumerable
+    public class Polygon : IEnumerable
     {
         public List<Point> polygon = new List<Point>();
-        public Polygon(List<Point> polygon) {
+        public Polygon(List<Point> polygon)
+        {
             this.polygon = new List<Point>(polygon);
         }
 
@@ -112,12 +113,12 @@ namespace FirstLab
             return false;
         }
 
-        public int checkWhichVerticeClicked(int x, int y)
+        public int CheckWhichVerticeClicked(int x, int y)
         {
             int j = 0;
             foreach (var point in polygon)
             {
-                if (Math.Abs(point.X - x) < Form1.RADIUS && Math.Abs(point.Y - y) < Form1.RADIUS)
+                if (Math.Abs(point.X - x) < Form1.RADIUS * 2 && Math.Abs(point.Y - y) < Form1.RADIUS * 2)
                     return j;
                 j++;
             }
@@ -125,7 +126,29 @@ namespace FirstLab
             return -1;
         }
 
+        public int CheckWhichCenterVerticeClicked(int x, int y)
+        {
+            var copyPolygon = new Polygon(polygon);
+            copyPolygon.AddToPolygon(polygon[0]);
+            Point? previousPoint = null;
+            int i = 0;
 
+            foreach (var point in copyPolygon)
+            {
+                if (previousPoint != null)
+                {
+                    Point centerPoint = FindCenterOfLine(previousPoint.Value, point);
+
+                    if (CalculateDistancePoints(new Point(x, y), centerPoint) <= Form1.RADIUS)
+                        return i;
+                }
+
+                i++;
+                previousPoint = point;
+            }
+
+            return -1;
+        }
 
         public int CheckWhichLineClicked(int x, int y)
         {
@@ -140,10 +163,11 @@ namespace FirstLab
                 if (previousPoint != null)
                 {
                     (float a, float b) = CalculateLinearFunction(point.X, point.Y, previousPoint.Value.X, previousPoint.Value.Y);
-       
 
-                    if (CalculateDistancePointLine(x, y, a, b) <= Form1.LINE_ERROR)
-                        return i;
+
+                    if (x >= Math.Min(point.X, previousPoint.Value.X) && x <= Math.Max(point.X, previousPoint.Value.X))
+                        if (CalculateDistancePointLine(x, y, a, b) <= Form1.LINE_ERROR)
+                            return i;
                 }
 
                 i++;
@@ -161,7 +185,12 @@ namespace FirstLab
             return numerator / denominator;
         }
 
-        public static (float, float) CalculateLinearFunction(float x1, float y1, float x2, float y2) 
+        public static float CalculateDistancePoints(Point p1, Point p2)
+        {
+            return (float)Math.Sqrt(Math.Pow(p1.X - p2.X, 2) + Math.Pow(p1.Y - p2.Y, 2));
+        }
+
+        public static (float, float) CalculateLinearFunction(float x1, float y1, float x2, float y2)
         {
             y1 = -y1; y2 = -y2;
             float a = (y2 - y1) / (x2 - x1);
@@ -170,10 +199,20 @@ namespace FirstLab
             return (a, b);
         }
 
+        public static Point FindCenterOfLine(Point p1, Point p2)
+        {
+            return new Point((p1.X + p2.X) / 2, (p1.Y + p2.Y) / 2);
+        }
+
         public void Remove(int index)
         {
             if (polygon.Count() > 3)
                 this.polygon.RemoveAt(index);
+        }
+
+        public void InsertAtIndex(int index, Point p)
+        {
+            this.polygon.Insert(index, p);
         }
 
         public Point this[int index]

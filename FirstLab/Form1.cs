@@ -10,7 +10,7 @@ namespace FirstLab
         private List<Line> lines = new List<Line>();
         public List<Polygon> polygons = new List<Polygon>();
         public const int RADIUS = 10;
-        public const int LINE_ERROR = 15;
+        public const int LINE_ERROR = 14;
         private Pen pen = new Pen(Color.Black, 2);
         private Point previousMouse;
         private bool mouseIsDown = false;
@@ -44,8 +44,6 @@ namespace FirstLab
                             polygons[coords.Item1].Remove(coords.Item2);
                             return;
                         }
-                            
-
 
                         int whichPolygonClicked = CheckWhichInsidePolygon(e.X, e.Y);
 
@@ -62,6 +60,11 @@ namespace FirstLab
                     // if clicked on another polygons' vertice
                     if (points.Count() == 0)
                     {
+                        (int, int) coordsCenterVerice = CheckIfCenterVerticeClicked(e.X, e.Y);
+
+                        if (coordsCenterVerice.Item1 != -1)
+                            polygons[coordsCenterVerice.Item1].InsertAtIndex(coordsCenterVerice.Item2, new Point(e.X, e.Y));
+
                         (int, int) coordsLine = CheckIfLineClicked(e.X, e.Y);
 
                         if (coordsLine.Item1 != -1)
@@ -76,6 +79,7 @@ namespace FirstLab
 
                         if (whichPolygonClicked != -1)
                             return;
+
                     }
 
                     if (points.Count() > 2 && Math.Abs(e.X - points.polygon[0].X) < RADIUS && Math.Abs(e.Y - points.polygon[0].Y) < RADIUS)
@@ -166,20 +170,26 @@ namespace FirstLab
             pen = new Pen(Color.Black, 2);
             foreach (var polygon in polygons)
             {
+                var copyPolygon = new Polygon(polygon);
+                copyPolygon.AddToPolygon(polygon[0]);
                 previousPoint = null;
 
-                foreach (var point in polygon)
+                foreach (var point in copyPolygon)
                 {
                     g.FillEllipse(Brushes.Black, point.X - RADIUS, point.Y - RADIUS, RADIUS * 2, RADIUS * 2);
 
                     if (previousPoint != null)
+                    {
                         g.DrawLine(pen, previousPoint.Value, point);
+                        Point p = Polygon.FindCenterOfLine(point, previousPoint.Value);
+                        g.FillEllipse(Brushes.Gray, p.X - RADIUS / 2, p.Y - RADIUS / 2, RADIUS, RADIUS);
+                    }
+                        
 
                     previousPoint = point;
                 }
-
-                g.DrawLine(pen, previousPoint.Value, polygon[0]);
             }
+
             pen.Dispose();
             pen = new Pen(Color.Black, 2);
 
@@ -196,10 +206,25 @@ namespace FirstLab
             pen.Dispose();
         }
 
+        public int MainEventLoop(int x, int y)
+        {
+            int i = 0;
+
+            foreach (var polygon in polygons)
+            {
+                int howManyTimes = polygon.CountHowManyTimeIntersected(x, y);
+
+                if (howManyTimes % 2 == 1)
+                    return i;
+
+                i++;
+            }
+
+            return -1;
+        }
+
         public int CheckWhichInsidePolygon(int x, int y)
         {
-            int[] polygonsIntersected = new int[polygons.Count];
-
             Point? previousPoint;
             int i = 0;
             foreach (var polygon in polygons)
@@ -222,7 +247,7 @@ namespace FirstLab
 
             foreach (var polygon in polygons)
             {
-                int whichVertice = polygon.checkWhichVerticeClicked(x, y);
+                int whichVertice = polygon.CheckWhichVerticeClicked(x, y);
 
                 if (whichVertice != -1)
                     return (i, whichVertice);
@@ -242,6 +267,24 @@ namespace FirstLab
 
                 if (whichLine != -1)
                     return (i, whichLine);
+
+                i++;
+            }
+
+            return (-1, -1);
+        }
+
+        public (int, int) CheckIfCenterVerticeClicked(int x, int y)
+        {
+            int i = 0;
+
+            foreach (var polygon in polygons)
+            {
+                var whichVertice = polygon.CheckWhichCenterVerticeClicked(x, y);
+
+                if (whichVertice != -1)
+                    return (i, whichVertice);
+                i++;
             }
 
             return (-1, -1);

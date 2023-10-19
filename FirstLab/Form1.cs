@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Globalization;
 using System.Windows.Forms;
 
 namespace FirstLab
@@ -16,7 +17,9 @@ namespace FirstLab
         private bool mouseIsDown = false;
         public (int, int) indexVerticeClicked = (-1, -1);
         public (int, int) indexLineClicked = (-1, -1);
+        public (int, int) indexLineIconsShow = (-1, -1);
         public int indexPolygonClicked = -1;
+        public AlgorithmTypeEnum algorithmType = AlgorithmTypeEnum.Biblioteczny;
 
         public Form1()
         {
@@ -48,7 +51,10 @@ namespace FirstLab
                         int whichPolygonClicked = CheckWhichInsidePolygon(e.X, e.Y);
 
                         if (whichPolygonClicked != -1)
+                        {
+                            indexLineIconsShow = (-1, -1);
                             polygons.RemoveAt(whichPolygonClicked);
+                        }
                     }
                 }
             }
@@ -101,6 +107,16 @@ namespace FirstLab
 
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
+            if (indexVerticeClicked.Item1 != -1)
+                indexLineIconsShow = (-1, -1);
+            else
+            {
+                (int, int) whichLine = CheckIfLineClicked(e.X, e.Y);
+
+                if (whichLine.Item1 != -1)
+                    indexLineIconsShow = whichLine;
+            }
+
             if (e.Button == MouseButtons.Left)
             {
                 mouseIsDown = true;
@@ -132,7 +148,8 @@ namespace FirstLab
                                 {
                                     indexLineClicked = coordsLine;
                                     polygons[coordsLine.Item1].moveLine(coordsLine.Item2, e.X - previousMouse.X, e.Y - previousMouse.Y);
-                                } else
+                                }
+                                else
                                 {
                                     int whichPolygonClicked = CheckWhichInsidePolygon(e.X, e.Y);
 
@@ -158,13 +175,23 @@ namespace FirstLab
             Graphics g = e.Graphics;
             Pen pen = new Pen(Color.Black, 2);
 
-            e.Graphics.DrawImage(drawArea, 0, 0);
+            //e.Graphics.DrawImage(drawArea, 0, 0);
             if (points.Count() > 0)
             {
-                g.DrawLine(pen, points[points.Count() - 1], Canvas.PointToClient(Cursor.Position));
+                if (algorithmType == AlgorithmTypeEnum.Biblioteczny)
+                    g.DrawLine(pen, points[points.Count() - 1], Canvas.PointToClient(Cursor.Position));
+                else
+                    Bresenham(points[points.Count() - 1], Canvas.PointToClient(Cursor.Position), g);
 
                 pen.Dispose();
             }
+
+            if (indexLineIconsShow.Item1 != -1)
+            {
+                Point p1 = polygons[indexLineIconsShow.Item1][indexLineIconsShow.Item2];
+                Point p2 = polygons[indexLineIconsShow.Item1][(indexLineIconsShow.Item2 + 1) % polygons[indexLineIconsShow.Item1].Count()];
+                DrawIcons(p1, p2, g);
+            } 
 
             Point? previousPoint;
             pen = new Pen(Color.Black, 2);
@@ -180,11 +207,15 @@ namespace FirstLab
 
                     if (previousPoint != null)
                     {
-                        g.DrawLine(pen, previousPoint.Value, point);
+                        if (algorithmType == AlgorithmTypeEnum.Biblioteczny)
+                            g.DrawLine(pen, previousPoint.Value, point);
+                        else
+                            Bresenham(previousPoint.Value, point, g);
+
                         Point p = Polygon.FindCenterOfLine(point, previousPoint.Value);
                         g.FillEllipse(Brushes.Gray, p.X - RADIUS / 2, p.Y - RADIUS / 2, RADIUS, RADIUS);
                     }
-                        
+
 
                     previousPoint = point;
                 }
@@ -199,11 +230,72 @@ namespace FirstLab
                 g.FillEllipse(Brushes.Black, point.X - RADIUS, point.Y - RADIUS, RADIUS * 2, RADIUS * 2);
 
                 if (previousPoint != null)
-                    g.DrawLine(pen, previousPoint.Value, point);
+                {
+                    if (algorithmType == AlgorithmTypeEnum.Biblioteczny)
+                        g.DrawLine(pen, previousPoint.Value, point);
+                    else
+                        Bresenham(previousPoint.Value, point, g);
+                }
+                    
                 previousPoint = point;
             }
 
             pen.Dispose();
+        }
+
+        private void Bresenham(Point p1, Point p2, Graphics g)
+        {
+
+            int x1 = p1.X, x2 = p2.X, y1 = p1.Y, y2 = p2.Y;
+            if (x1 > x2)
+            {
+                x1 = x2;
+                x2 = p1.X;
+
+                y1 = y2;
+                y2 = p1.Y;
+            }
+
+            int dx = Math.Abs(x2 - x1);
+            int dy = Math.Abs(y2 - y1);
+            int sx = (x1 < x2) ? 1 : -1;
+            int sy = (y1 < y2) ? 1 : -1;
+            int err = dx - dy;
+            Pen pen = new Pen(Color.Black);
+
+            while (true)
+            {
+                g.DrawRectangle(pen, x1, y1, 1, 1);
+
+                if (x1 == x2 && y1 == y2)
+                    break;
+
+                int e2 = 2 * err;
+                if (e2 > -dy)
+                {
+                    err -= dy;
+                    x1 += sx;
+                }
+                if (e2 < dx)
+                {
+                    err += dx;
+                    y1 += sy;
+                }
+            }
+        }
+
+        private void DrawIcons(Point p1, Point p2, Graphics g)
+        {
+            Point p = Polygon.FindCenterOfLine(p1, p2);
+
+            (float a, float b) = Polygon.CalculateLinearFunction(p1.X, p1.Y, p2.X, p2.Y);
+
+            float aNew = -1 / a;
+            float bNew = p.X * aNew + p.Y;
+            int yMove = p.Y - RADIUS;
+
+            g.FillEllipse(Brushes.Blue, p.X - RADIUS - RADIUS * 2, p.Y - RADIUS , RADIUS * 2, RADIUS * 2);
+            g.FillEllipse(Brushes.Blue, p.X - RADIUS + RADIUS * 2, p.Y - RADIUS, RADIUS * 2, RADIUS * 2);
         }
 
         public int MainEventLoop(int x, int y)
@@ -260,7 +352,7 @@ namespace FirstLab
         public (int, int) CheckIfLineClicked(int x, int y)
         {
             int i = 0;
-            
+
             foreach (var polygon in polygons)
             {
                 int whichLine = polygon.CheckWhichLineClicked(x, y);
@@ -296,6 +388,16 @@ namespace FirstLab
             indexVerticeClicked = (-1, -1);
             indexPolygonClicked = -1;
             indexLineClicked = (-1, -1);
+        }
+
+        private void bibliotecznyRadio_CheckedChanged(object sender, EventArgs e)
+        {
+            algorithmType = AlgorithmTypeEnum.Biblioteczny;
+        }
+
+        private void bresenhamRadio_CheckedChanged(object sender, EventArgs e)
+        {
+            algorithmType = AlgorithmTypeEnum.Bresenham;
         }
     }
 

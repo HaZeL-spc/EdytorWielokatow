@@ -1,6 +1,8 @@
-﻿using System;
+﻿using FirstLab.models;
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Security.Policy;
 using System.Text;
@@ -11,11 +13,13 @@ namespace FirstLab
     public class Polygon : IEnumerable
     {
         public List<Point> polygon = new List<Point>();
+        public LinesOptionList linesOption = new LinesOptionList(0);
+
         public Polygon(List<Point> polygon)
         {
             this.polygon = new List<Point>(polygon);
+            this.linesOption = new LinesOptionList(polygon.Count);
         }
-
         public Polygon(Polygon newPolygon)
         {
             this.polygon = new List<Point>(newPolygon.polygon);
@@ -46,11 +50,62 @@ namespace FirstLab
         public void AddToPolygon(Point point)
         {
             this.polygon.Add(point);
+            this.linesOption.Add();
+        }
+
+        public void Remove(int index)
+        {
+            if (polygon.Count() > 3)
+            {
+                this.polygon.RemoveAt(index);
+                this.linesOption.RemoveAt(index);
+            }
+        }
+
+        public void InsertAtIndex(int index, Point p)
+        {
+            this.polygon.Insert(index, p);
+            this.linesOption.Insert(index);
         }
 
         public int Count()
         {
             return this.polygon.Count;
+        }
+
+        public void ModifyPoint(int index, int x, int y, Point previousPoint)
+        {
+            OptionTypeEnum first = linesOption[index];
+            OptionTypeEnum second = linesOption[index - 1];
+
+            (int, int) moveCoords = (x - previousPoint.X, y - previousPoint.Y);
+            this.polygon[index] = new Point(this.polygon[index].X + moveCoords.Item1, this.polygon[index].Y + moveCoords.Item2);
+
+            if (first == OptionTypeEnum.Nothing && second == OptionTypeEnum.Nothing)
+                return;
+
+            int count = this.polygon.Count;
+            int i;
+
+            for (i = index - 1; i >= index - count ; i--)
+            {
+                if (linesOption[i] == OptionTypeEnum.Nothing)
+                    break;
+
+                Point p = this[i];
+                this[i] = new Point(p.X + moveCoords.Item1, p.Y + moveCoords.Item2);
+            }
+
+            int j; 
+            for (j = (index + 1) % count; j <= i + count; j++)
+            {
+                if (linesOption[(j - 1)% count] == OptionTypeEnum.Nothing)
+                    break;
+
+                Point p = this[j % count];
+                this[j % count] = new Point(p.X + moveCoords.Item1, p.Y + moveCoords.Item2);
+            }
+
         }
 
         // Implement the IEnumerable.GetEnumerator method
@@ -177,6 +232,33 @@ namespace FirstLab
             return -1;
         }
 
+        public void ChangeOptionLineHandling(int index, OptionTypeEnum option)
+        {
+            this.linesOption.ChangeOption(index, option);
+
+            if (option == OptionTypeEnum.Nothing) return;
+
+            if (option == OptionTypeEnum.Horizontal)
+            {
+                Point point = this.polygon[(index + 1) % Count()];
+                Point previousPoint = this.polygon[index];
+
+                int distance = previousPoint.X - point.X;
+                
+                this.polygon[(index + 1) % Count()] = new Point(previousPoint.X - (int)distance, previousPoint.Y);
+
+            }
+            else if (option == OptionTypeEnum.Vertical)
+            {
+                Point point = this.polygon[(index + 1) % Count()];
+                Point previousPoint = this.polygon[index];
+
+                //float distance = CalculateDistancePoints(previousPoint, point);
+                int distance = previousPoint.X - point.X;
+                this.polygon[(index + 1) % Count()] = new Point(previousPoint.X, previousPoint.Y + (int)distance);
+            }
+        }
+
         public static float CalculateDistancePointLine(int x, int y, float a, float b)
         {
             float numerator = Math.Abs(-a * x + y - b);
@@ -199,20 +281,28 @@ namespace FirstLab
             return (a, b);
         }
 
+        // calculates center of line and makes two icons on two sides of line (prostopadle) to the line
+        public static (Point, Point) CalculatePointsDistanceFromPoint(Point p, Point p1, Point p2, int distance)
+        {
+
+            (float a, float b) = Polygon.CalculateLinearFunction(p1.X, p1.Y, p2.X, p2.Y);
+
+            float aNew = -1 / a;
+            float bNew = -p.X * aNew + p.Y;
+
+            Point icon1 = new Point((int)(p.X + 1.5 * distance * (float)(1 / (Math.Sqrt(1 + Math.Pow(aNew, 2))))),
+                (int)(p.Y + 1.5 * distance * (float)(aNew / Math.Sqrt(1 + Math.Pow(aNew, 2)))));
+
+            Point icon2 = new Point((int)(p.X - 0.5 * distance * (float)(1 / (Math.Sqrt(1 + Math.Pow(aNew, 2))))),
+                (int)(p.Y - 0.5 * distance * (float)(aNew / Math.Sqrt(1 + Math.Pow(aNew, 2)))));
+
+
+            return (icon1, icon2);
+        }
+
         public static Point FindCenterOfLine(Point p1, Point p2)
         {
             return new Point((p1.X + p2.X) / 2, (p1.Y + p2.Y) / 2);
-        }
-
-        public void Remove(int index)
-        {
-            if (polygon.Count() > 3)
-                this.polygon.RemoveAt(index);
-        }
-
-        public void InsertAtIndex(int index, Point p)
-        {
-            this.polygon.Insert(index, p);
         }
 
         public Point this[int index]
@@ -225,6 +315,11 @@ namespace FirstLab
                 }
                 else
                 {
+                    if (index < 0 && Math.Abs(index) <= polygon.Count)
+                    {
+                        return this.polygon[this.polygon.Count + index];
+                    }
+
                     throw new IndexOutOfRangeException("Index is out of range.");
                 }
             }
@@ -236,7 +331,13 @@ namespace FirstLab
                 }
                 else
                 {
-                    throw new IndexOutOfRangeException("Index is out of range.");
+                    if (index < 0 && Math.Abs(index) <= polygon.Count)
+                    {
+                        polygon[this.polygon.Count + index] = value;
+                    } else
+                        throw new IndexOutOfRangeException("Index is out of range.");
+
+
                 }
             }
         }

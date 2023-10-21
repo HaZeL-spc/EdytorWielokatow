@@ -1,4 +1,6 @@
-﻿namespace FirstLab
+﻿using FirstLab.models;
+
+namespace FirstLab
 {
     partial class Form1
     {
@@ -139,5 +141,7 @@
         private GroupBox AlgorytmGroupBox;
         private RadioButton bibliotecznyRadio;
         private RadioButton bresenhamRadio;
+
+        public static OptionTypeEnum OptionChosenPopup;
     }
 }

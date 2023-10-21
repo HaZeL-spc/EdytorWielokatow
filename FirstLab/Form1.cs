@@ -16,8 +16,8 @@ namespace FirstLab
         private Point previousMouse;
         private bool mouseIsDown = false;
         public (int, int) indexVerticeClicked = (-1, -1);
+        public (int, int) indexWhichLineHover = (-1, -1);
         public (int, int) indexLineClicked = (-1, -1);
-        public (int, int) indexLineIconsShow = (-1, -1);
         public int indexPolygonClicked = -1;
         public AlgorithmTypeEnum algorithmType = AlgorithmTypeEnum.Biblioteczny;
 
@@ -39,21 +39,32 @@ namespace FirstLab
             {
                 using (Graphics g = Graphics.FromImage(drawArea))
                 {
+
+
                     if (points.Count() == 0)
                     {
-                        (int, int) coords = CheckIfVerticeClicked(e.X, e.Y);
-                        if (coords.Item1 != -1)
+                        if ((Control.ModifierKeys & Keys.Control) == Keys.Control)
                         {
-                            polygons[coords.Item1].Remove(coords.Item2);
-                            return;
-                        }
-
-                        int whichPolygonClicked = CheckWhichInsidePolygon(e.X, e.Y);
-
-                        if (whichPolygonClicked != -1)
+                            (int, int) coordsLine = CheckIfLineClicked(e.X, e.Y);
+                            if (coordsLine.Item1 != -1)
+                            {
+                                ShowPopupLineType(e.X, e.Y, coordsLine);
+                            }
+                        } else
                         {
-                            indexLineIconsShow = (-1, -1);
-                            polygons.RemoveAt(whichPolygonClicked);
+                            (int, int) coords = CheckIfVerticeClicked(e.X, e.Y);
+                            if (coords.Item1 != -1)
+                            {
+                                polygons[coords.Item1].Remove(coords.Item2);
+                                return;
+                            }
+
+                            int whichPolygonClicked = CheckWhichInsidePolygon(e.X, e.Y);
+
+                            if (whichPolygonClicked != -1)
+                            {
+                                polygons.RemoveAt(whichPolygonClicked);
+                            }
                         }
                     }
                 }
@@ -107,15 +118,21 @@ namespace FirstLab
 
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
-            if (indexVerticeClicked.Item1 != -1)
-                indexLineIconsShow = (-1, -1);
-            else
-            {
-                (int, int) whichLine = CheckIfLineClicked(e.X, e.Y);
+            //if (indexVerticeClicked.Item1 != -1)
+            //    indexLineIconsShow = (-1, -1);
+            //else
+            //{
+            //    (int, int) whichLine = CheckIfLineClicked(e.X, e.Y);
 
-                if (whichLine.Item1 != -1)
-                    indexLineIconsShow = whichLine;
+            //    if (whichLine.Item1 != -1)
+            //        indexLineIconsShow = whichLine;
+            //}
+            (int, int) whichLineHovered = CheckIfLineClicked(e.X, e.Y);
+            if (whichLineHovered.Item1 != -1)
+            {
+                indexWhichLineHover = whichLineHovered;
             }
+
 
             if (e.Button == MouseButtons.Left)
             {
@@ -125,7 +142,10 @@ namespace FirstLab
                     if (points.Count() == 0)
                     {
                         if (indexVerticeClicked != (-1, -1))
-                            polygons[indexVerticeClicked.Item1][indexVerticeClicked.Item2] = new Point(e.X, e.Y);
+                        {
+                            polygons[indexVerticeClicked.Item1].ModifyPoint(indexVerticeClicked.Item2, e.X, e.Y, previousMouse);
+                        }
+                            //polygons[indexVerticeClicked.Item1][indexVerticeClicked.Item2] = new Point(e.X, e.Y);
                         else if (indexLineClicked != (-1, -1))
                             polygons[indexLineClicked.Item1].moveLine(indexLineClicked.Item2, e.X - previousMouse.X, e.Y - previousMouse.Y);
                         else if (indexPolygonClicked != -1)
@@ -138,7 +158,8 @@ namespace FirstLab
                             if (cords.Item1 != -1)
                             {
                                 indexVerticeClicked = cords;
-                                polygons[cords.Item1][cords.Item2] = new Point(e.X, e.Y);
+                                //polygons[cords.Item1][cords.Item2] = new Point(e.X, e.Y);
+                                //polygons[cords.Item1].ModifyPoint(cords.Item2, e.X, e.Y, previousMouse);
                             }
                             else
                             {
@@ -186,12 +207,12 @@ namespace FirstLab
                 pen.Dispose();
             }
 
-            if (indexLineIconsShow.Item1 != -1)
-            {
-                Point p1 = polygons[indexLineIconsShow.Item1][indexLineIconsShow.Item2];
-                Point p2 = polygons[indexLineIconsShow.Item1][(indexLineIconsShow.Item2 + 1) % polygons[indexLineIconsShow.Item1].Count()];
-                DrawIcons(p1, p2, g);
-            } 
+            //if (indexLineIconsShow.Item1 != -1)
+            //{
+            //    Point p1 = polygons[indexLineIconsShow.Item1][indexLineIconsShow.Item2];
+            //    Point p2 = polygons[indexLineIconsShow.Item1][(indexLineIconsShow.Item2 + 1) % polygons[indexLineIconsShow.Item1].Count()];
+            //    //DrawIcons(p1, p2, g);
+            //} 
 
             Point? previousPoint;
             pen = new Pen(Color.Black, 2);
@@ -236,7 +257,7 @@ namespace FirstLab
                     else
                         Bresenham(previousPoint.Value, point, g);
                 }
-                    
+
                 previousPoint = point;
             }
 
@@ -288,14 +309,10 @@ namespace FirstLab
         {
             Point p = Polygon.FindCenterOfLine(p1, p2);
 
-            (float a, float b) = Polygon.CalculateLinearFunction(p1.X, p1.Y, p2.X, p2.Y);
+            //(Point icon1, Point icon2) = Polygon.CalculatePointsDistanceFromPoint(p, p1, p2, RADIUS * 2);
 
-            float aNew = -1 / a;
-            float bNew = p.X * aNew + p.Y;
-            int yMove = p.Y - RADIUS;
-
-            g.FillEllipse(Brushes.Blue, p.X - RADIUS - RADIUS * 2, p.Y - RADIUS , RADIUS * 2, RADIUS * 2);
-            g.FillEllipse(Brushes.Blue, p.X - RADIUS + RADIUS * 2, p.Y - RADIUS, RADIUS * 2, RADIUS * 2);
+            //g.FillEllipse(Brushes.Blue, icon1.X, icon1.Y, RADIUS * 2, RADIUS * 2);
+            //g.FillEllipse(Brushes.Blue, icon2.X, icon2.Y, RADIUS * 2, RADIUS * 2);
         }
 
         public int MainEventLoop(int x, int y)
@@ -380,6 +397,18 @@ namespace FirstLab
             }
 
             return (-1, -1);
+        }
+
+        public void ShowPopupLineType(int x, int y, (int, int) indexEl)
+        {
+            (bool, bool) options = polygons[indexEl.Item1].linesOption.WhichOptionAvailable(indexEl.Item2);
+
+            using (var customPopup = new PopupRelation(options.Item1, options.Item2, this.polygons[indexEl.Item1].linesOption[indexEl.Item2]))
+            {
+                customPopup.ShowDialog();
+
+                this.polygons[indexEl.Item1].ChangeOptionLineHandling(indexEl.Item2, Form1.OptionChosenPopup);
+            }
         }
 
         private void Canvas_MouseUp(object sender, MouseEventArgs e)

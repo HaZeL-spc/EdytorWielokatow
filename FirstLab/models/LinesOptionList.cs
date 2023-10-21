@@ -43,8 +43,8 @@ namespace FirstLab.models
         public void Insert(int index)
         {
             this.linesOption.RemoveAt(index - 1);
-            this.linesOption.Insert(2, OptionTypeEnum.Nothing);
-            this.linesOption.Insert(3, OptionTypeEnum.Nothing);
+            this.linesOption.Insert(index - 1, OptionTypeEnum.Nothing);
+            this.linesOption.Insert(index, OptionTypeEnum.Nothing);
         }
 
         public void ChangeOption(int index, OptionTypeEnum option)

@@ -130,10 +130,10 @@ namespace FirstLab
         private void OkayButton_Click(object sender, EventArgs e)
         {
             //MessageBox.Show("yeah");
-            if (this.Vertical.Checked)
+            if (this.Vertical != null && this.Vertical.Checked)
             {
                 Form1.OptionChosenPopup = OptionTypeEnum.Vertical;
-            } else if (this.Horizontal.Checked)
+            } else if (this.Horizontal != null && this.Horizontal.Checked)
             {
                 Form1.OptionChosenPopup = OptionTypeEnum.Horizontal;
             } else

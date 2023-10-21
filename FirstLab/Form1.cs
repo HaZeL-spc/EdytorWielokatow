@@ -39,8 +39,6 @@ namespace FirstLab
             {
                 using (Graphics g = Graphics.FromImage(drawArea))
                 {
-
-
                     if (points.Count() == 0)
                     {
                         if ((Control.ModifierKeys & Keys.Control) == Keys.Control)
@@ -127,11 +125,11 @@ namespace FirstLab
             //    if (whichLine.Item1 != -1)
             //        indexLineIconsShow = whichLine;
             //}
-            (int, int) whichLineHovered = CheckIfLineClicked(e.X, e.Y);
-            if (whichLineHovered.Item1 != -1)
-            {
-                indexWhichLineHover = whichLineHovered;
-            }
+            //(int, int) whichLineHovered = CheckIfLineClicked(e.X, e.Y);
+            //if (whichLineHovered.Item1 != -1)
+            //{
+            //    indexWhichLineHover = whichLineHovered;
+            //}
 
 
             if (e.Button == MouseButtons.Left)
@@ -147,7 +145,7 @@ namespace FirstLab
                         }
                             //polygons[indexVerticeClicked.Item1][indexVerticeClicked.Item2] = new Point(e.X, e.Y);
                         else if (indexLineClicked != (-1, -1))
-                            polygons[indexLineClicked.Item1].moveLine(indexLineClicked.Item2, e.X - previousMouse.X, e.Y - previousMouse.Y);
+                            polygons[indexLineClicked.Item1].moveLine(indexLineClicked.Item2, e.X, e.Y, previousMouse);
                         else if (indexPolygonClicked != -1)
                             polygons[indexPolygonClicked].movePolygon(e.X - previousMouse.X, e.Y - previousMouse.Y);
                         else
@@ -158,8 +156,6 @@ namespace FirstLab
                             if (cords.Item1 != -1)
                             {
                                 indexVerticeClicked = cords;
-                                //polygons[cords.Item1][cords.Item2] = new Point(e.X, e.Y);
-                                //polygons[cords.Item1].ModifyPoint(cords.Item2, e.X, e.Y, previousMouse);
                             }
                             else
                             {
@@ -168,7 +164,7 @@ namespace FirstLab
                                 if (coordsLine != (-1, -1))
                                 {
                                     indexLineClicked = coordsLine;
-                                    polygons[coordsLine.Item1].moveLine(coordsLine.Item2, e.X - previousMouse.X, e.Y - previousMouse.Y);
+                                    //polygons[coordsLine.Item1].moveLine(coordsLine.Item2, e.X - previousMouse.X, e.Y - previousMouse.Y);
                                 }
                                 else
                                 {
@@ -206,13 +202,6 @@ namespace FirstLab
 
                 pen.Dispose();
             }
-
-            //if (indexLineIconsShow.Item1 != -1)
-            //{
-            //    Point p1 = polygons[indexLineIconsShow.Item1][indexLineIconsShow.Item2];
-            //    Point p2 = polygons[indexLineIconsShow.Item1][(indexLineIconsShow.Item2 + 1) % polygons[indexLineIconsShow.Item1].Count()];
-            //    //DrawIcons(p1, p2, g);
-            //} 
 
             Point? previousPoint;
             pen = new Pen(Color.Black, 2);
@@ -261,6 +250,7 @@ namespace FirstLab
                 previousPoint = point;
             }
 
+            DrawIcons(g);
             pen.Dispose();
         }
 
@@ -305,9 +295,26 @@ namespace FirstLab
             }
         }
 
-        private void DrawIcons(Point p1, Point p2, Graphics g)
+        private void DrawIcons(Graphics g)
         {
-            Point p = Polygon.FindCenterOfLine(p1, p2);
+            Pen pen = new Pen(Color.Black, 2);
+            foreach (var polygon in polygons)
+            {
+                for (int i = 0; i < polygon.Count(); i++)
+                {
+                    if (polygon.linesOption[i] == models.OptionTypeEnum.Horizontal)
+                    {
+                        Point point = Polygon.FindCenterOfLine(polygon[i], polygon[(i + 1) % polygon.Count()]);
+                        g.FillEllipse(Brushes.GreenYellow, point.X - RADIUS, point.Y - RADIUS * 3, RADIUS * 2, RADIUS * 2);
+                        g.DrawLine(pen, new Point(point.X - RADIUS, point.Y - RADIUS * 2), new Point(point.X + RADIUS, point.Y - RADIUS * 2));
+                    } else if (polygon.linesOption[i] == models.OptionTypeEnum.Vertical)
+                    {
+                        Point point = Polygon.FindCenterOfLine(polygon[i], polygon[(i + 1) % polygon.Count()]);
+                        g.FillEllipse(Brushes.GreenYellow, point.X - RADIUS * 3, point.Y - RADIUS, RADIUS * 2, RADIUS * 2);
+                        g.DrawLine(pen, new Point(point.X - RADIUS * 2, point.Y - RADIUS), new Point(point.X - RADIUS * 2, point.Y + RADIUS));
+                    }
+                }
+            }
 
             //(Point icon1, Point icon2) = Polygon.CalculatePointsDistanceFromPoint(p, p1, p2, RADIUS * 2);
 

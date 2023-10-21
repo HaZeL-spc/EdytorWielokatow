@@ -38,15 +38,6 @@ namespace FirstLab
             this.polygon = new List<Point>(newPolygon);
         }
 
-        public void moveLine(int index, int xMove, int yMove)
-        {
-            Point point1 = this.polygon[index];
-            Point point2 = this.polygon[(index + 1) % polygon.Count()];
-
-            this.polygon[index] = new Point(point1.X + xMove, point1.Y + yMove);
-            this.polygon[(index + 1) % polygon.Count()] = new Point(point2.X + xMove, point2.Y + yMove);
-        }
-
         public void AddToPolygon(Point point)
         {
             this.polygon.Add(point);
@@ -87,7 +78,7 @@ namespace FirstLab
             int count = this.polygon.Count;
             int i;
 
-            for (i = index - 1; i >= index - count ; i--)
+            for (i = index - 1; i > index - count ; i--)
             {
                 if (linesOption[i] == OptionTypeEnum.Nothing)
                     break;
@@ -97,7 +88,7 @@ namespace FirstLab
             }
 
             int j; 
-            for (j = (index + 1) % count; j <= i + count; j++)
+            for (j = index + 1; j < i + count + 1; j++)
             {
                 if (linesOption[(j - 1)% count] == OptionTypeEnum.Nothing)
                     break;
@@ -107,6 +98,47 @@ namespace FirstLab
             }
 
         }
+
+        public void moveLine(int index, int x, int y, Point previousPoint)
+        {
+            Point point1 = this.polygon[index];
+            Point point2 = this.polygon[(index + 1) % polygon.Count()];
+
+            (int, int) moveCoords = (x - previousPoint.X, y - previousPoint.Y);
+            this.polygon[index] = new Point(point1.X + moveCoords.Item1, point1.Y + moveCoords.Item2);
+            this.polygon[(index + 1) % polygon.Count()] = new Point(point2.X + moveCoords.Item1, point2.Y + moveCoords.Item2);
+
+            OptionTypeEnum first = linesOption[(index + 1) % polygon.Count()];
+            OptionTypeEnum second = linesOption[index - 1];
+
+            if (first == OptionTypeEnum.Nothing && second == OptionTypeEnum.Nothing)
+                return;
+
+            int count = this.polygon.Count;
+            int i;
+
+            for (i = index; i > index - count + 2; i--)
+            {
+                if (linesOption[i - 1] == OptionTypeEnum.Nothing)
+                    break;
+
+                point2 = this[i - 1];
+                this[i - 1] = new Point(point2.X + moveCoords.Item1, point2.Y + moveCoords.Item2);
+                //this[i - 1].Offset(moveCoords.Item1, moveCoords.Item2);
+            }
+
+            int j;
+            for (j = index + 1; j < i + count - 1; j++)
+            {
+                if (linesOption[j % count] == OptionTypeEnum.Nothing)
+                    break;
+
+                point2 = this[(j + 1) % count];
+                //point1.Offset
+                this[(j + 1) % count] = new Point(point2.X + moveCoords.Item1, point2.Y + moveCoords.Item2);
+            }
+        }
+
 
         // Implement the IEnumerable.GetEnumerator method
         public IEnumerator<Point> GetEnumerator()
@@ -219,10 +251,16 @@ namespace FirstLab
                 {
                     (float a, float b) = CalculateLinearFunction(point.X, point.Y, previousPoint.Value.X, previousPoint.Value.Y);
 
-
-                    if (x >= Math.Min(point.X, previousPoint.Value.X) && x <= Math.Max(point.X, previousPoint.Value.X))
-                        if (CalculateDistancePointLine(x, y, a, b) <= Form1.LINE_ERROR)
+                    if (float.IsPositiveInfinity(a) || float.IsNegativeInfinity(a))
+                    {
+                        if (x >= point.X - Form1.LINE_ERROR && x <= point.X + Form1.LINE_ERROR && -y >= Math.Min(point.Y, previousPoint.Value.Y) && -y <= Math.Max(point.Y, previousPoint.Value.Y))
                             return i;
+                    } else
+                    {
+                        if (x >= Math.Min(point.X, previousPoint.Value.X) && x <= Math.Max(point.X, previousPoint.Value.X))
+                            if (CalculateDistancePointLine(x, y, a, b) <= Form1.LINE_ERROR)
+                                return i;
+                    }
                 }
 
                 i++;
@@ -253,8 +291,7 @@ namespace FirstLab
                 Point point = this.polygon[(index + 1) % Count()];
                 Point previousPoint = this.polygon[index];
 
-                //float distance = CalculateDistancePoints(previousPoint, point);
-                int distance = previousPoint.X - point.X;
+                int distance = point.Y - previousPoint.Y;
                 this.polygon[(index + 1) % Count()] = new Point(previousPoint.X, previousPoint.Y + (int)distance);
             }
         }

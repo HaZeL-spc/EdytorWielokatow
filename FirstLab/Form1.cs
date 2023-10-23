@@ -12,6 +12,7 @@ namespace FirstLab
         public List<Polygon> polygons = new List<Polygon>();
         public const int RADIUS = 10;
         public const int LINE_ERROR = 14;
+        public int DISTANCE;
         private Pen pen = new Pen(Color.Black, 2);
         private Point previousMouse;
         private bool mouseIsDown = false;
@@ -31,6 +32,8 @@ namespace FirstLab
             {
                 g.Clear(Color.White);
             }
+
+            DISTANCE = 30;
         }
 
         private void Canvas_MouseDown(object sender, MouseEventArgs e)
@@ -78,7 +81,11 @@ namespace FirstLab
                         (int, int) coordsCenterVerice = CheckIfCenterVerticeClicked(e.X, e.Y);
 
                         if (coordsCenterVerice.Item1 != -1)
+                        {
                             polygons[coordsCenterVerice.Item1].InsertAtIndex(coordsCenterVerice.Item2, new Point(e.X, e.Y));
+
+                        }
+
 
                         (int, int) coordsLine = CheckIfLineClicked(e.X, e.Y);
 
@@ -101,7 +108,11 @@ namespace FirstLab
                     {
                         // check if point already exists there
 
+                        
                         polygons.Add(points);
+                        polygons[polygons.Count - 1].PrepareOutline(DISTANCE);
+                        //MessageBox.Show($"{polygons[polygons.Count - 1].outlinePolygon.Count}");
+
                         points = new Polygon(new List<Point>());
                     }
                     else
@@ -142,12 +153,19 @@ namespace FirstLab
                         if (indexVerticeClicked != (-1, -1))
                         {
                             polygons[indexVerticeClicked.Item1].ModifyPoint(indexVerticeClicked.Item2, e.X, e.Y, previousMouse);
+                            polygons[indexVerticeClicked.Item1].PrepareOutline(DISTANCE);
                         }
                             //polygons[indexVerticeClicked.Item1][indexVerticeClicked.Item2] = new Point(e.X, e.Y);
                         else if (indexLineClicked != (-1, -1))
+                        {
                             polygons[indexLineClicked.Item1].moveLine(indexLineClicked.Item2, e.X, e.Y, previousMouse);
+                            polygons[indexLineClicked.Item1].PrepareOutline(DISTANCE);
+                        }
                         else if (indexPolygonClicked != -1)
+                        {
                             polygons[indexPolygonClicked].movePolygon(e.X - previousMouse.X, e.Y - previousMouse.Y);
+                            polygons[indexPolygonClicked].PrepareOutline(DISTANCE);
+                        }
                         else
                         {
                             // first time clicking new vertice
@@ -174,6 +192,7 @@ namespace FirstLab
                                     {
                                         indexPolygonClicked = whichPolygonClicked;
                                         polygons[whichPolygonClicked].movePolygon(e.X - previousMouse.X, e.Y - previousMouse.Y);
+                                        polygons[indexPolygonClicked].PrepareOutline(DISTANCE);
                                     }
                                 }
                             }
@@ -187,12 +206,106 @@ namespace FirstLab
             Canvas.Invalidate();
         }
 
+        //private void Canvas_Paint(object sender, PaintEventArgs e)
+        //{
+        //    Graphics g = e.Graphics;
+        //    Pen pen = new Pen(Color.Black, 2);
+
+        //    //e.Graphics.DrawImage(drawArea, 0, 0);
+        //    if (points.Count() > 0)
+        //    {
+        //        if (algorithmType == AlgorithmTypeEnum.Biblioteczny)
+        //            g.DrawLine(pen, points[points.Count() - 1], Canvas.PointToClient(Cursor.Position));
+        //        else
+        //            Bresenham(points[points.Count() - 1], Canvas.PointToClient(Cursor.Position), g);
+
+        //        //pen.Dispose();
+        //    }
+
+        //    Point? previousPoint;
+        //    pen = new Pen(Color.Black, 2);
+        //    foreach (var polygon in polygons)
+        //    {
+        //        var copyPolygon = new Polygon(polygon);
+        //        copyPolygon.AddToPolygon(polygon[0]);
+        //        previousPoint = null;
+
+        //        pen = new Pen(Color.Black, 2);
+
+        //        foreach (var point in copyPolygon)
+        //        {
+        //            g.FillEllipse(Brushes.Black, point.X - RADIUS, point.Y - RADIUS, RADIUS * 2, RADIUS * 2);
+
+        //            if (previousPoint != null)
+        //            {
+        //                if (algorithmType == AlgorithmTypeEnum.Biblioteczny)
+        //                    g.DrawLine(pen, previousPoint.Value, point);
+        //                else
+        //                    Bresenham(previousPoint.Value, point, g);
+
+        //                Point p = Polygon.FindCenterOfLine(point, previousPoint.Value);
+        //                g.FillEllipse(Brushes.Gray, p.X - RADIUS / 2, p.Y - RADIUS / 2, RADIUS, RADIUS);
+        //            }
+
+
+        //            previousPoint = point;
+
+        //        }
+        //    }
+
+
+        //    if (otoczkaOn)
+        //    {
+        //        foreach (var polygon in polygons)
+        //        {
+        //            var copy = new List<Point>(polygon.outlinePolygon);
+        //            copy.Add(polygon.outlinePolygon[0]);
+        //            previousPoint = null;
+
+        //            using (Pen pen1 = new Pen(Color.Black, 2))
+        //            {
+        //                foreach (var point in copy)
+        //                {
+        //                    if (previousPoint != null)
+        //                    {
+        //                        e.Graphics.DrawLine(pen1, previousPoint.Value, point);
+        //                    }
+
+        //                    previousPoint = point;
+        //                }
+        //            }
+        //        }
+        //    }
+
+        //    pen = new Pen(Color.Black, 2);
+
+        //    previousPoint = null;
+        //    foreach (var point in points)
+        //    {
+        //        g.FillEllipse(Brushes.Black, point.X - RADIUS, point.Y - RADIUS, RADIUS * 2, RADIUS * 2);
+
+        //        if (previousPoint != null)
+        //        {
+        //            if (algorithmType == AlgorithmTypeEnum.Biblioteczny)
+        //                g.DrawLine(pen, previousPoint.Value, point);
+        //            else
+        //                Bresenham(previousPoint.Value, point, g);
+        //        }
+
+        //        previousPoint = point;
+        //    }
+
+        //    DrawIcons(g);
+        //    pen.Dispose();
+        //}
+
         private void Canvas_Paint(object sender, PaintEventArgs e)
         {
             Graphics g = e.Graphics;
             Pen pen = new Pen(Color.Black, 2);
 
             //e.Graphics.DrawImage(drawArea, 0, 0);
+            g.Clear(Color.White);
             if (points.Count() > 0)
             {
                 if (algorithmType == AlgorithmTypeEnum.Biblioteczny)
@@ -200,7 +313,7 @@ namespace FirstLab
                 else
                     Bresenham(points[points.Count() - 1], Canvas.PointToClient(Cursor.Position), g);
 
-                pen.Dispose();
+                //pen.Dispose();
             }
 
             Point? previousPoint;
@@ -210,6 +323,8 @@ namespace FirstLab
                 var copyPolygon = new Polygon(polygon);
                 copyPolygon.AddToPolygon(polygon[0]);
                 previousPoint = null;
+
+                pen = new Pen(Color.Black, 2);
 
                 foreach (var point in copyPolygon)
                 {
@@ -228,10 +343,34 @@ namespace FirstLab
 
 
                     previousPoint = point;
+
                 }
             }
 
-            pen.Dispose();
+
+            if (otoczkaOn)
+            {
+                foreach (var polygon in polygons)
+                {
+                    var copy = new List<Point>(polygon.outlinePolygon);
+                    copy.Add(polygon.outlinePolygon[0]);
+                    previousPoint = null;
+
+                    using (Pen pen1 = new Pen(Color.Black, 2))
+                    {
+                        foreach (var point in copy)
+                        {
+                            if (previousPoint != null)
+                            {
+                                e.Graphics.DrawLine(pen1, previousPoint.Value, point);
+                            }
+
+                            previousPoint = point;
+                        }
+                    }
+                }
+            }
+
             pen = new Pen(Color.Black, 2);
 
             previousPoint = null;
@@ -254,18 +393,11 @@ namespace FirstLab
             pen.Dispose();
         }
 
+
         private void Bresenham(Point p1, Point p2, Graphics g)
         {
 
             int x1 = p1.X, x2 = p2.X, y1 = p1.Y, y2 = p2.Y;
-            if (x1 > x2)
-            {
-                x1 = x2;
-                x2 = p1.X;
-
-                y1 = y2;
-                y2 = p1.Y;
-            }
 
             int dx = Math.Abs(x2 - x1);
             int dy = Math.Abs(y2 - y1);
@@ -434,6 +566,25 @@ namespace FirstLab
         private void bresenhamRadio_CheckedChanged(object sender, EventArgs e)
         {
             algorithmType = AlgorithmTypeEnum.Bresenham;
+        }
+
+        private void checkBoxOtoczka_CheckedChanged(object sender, EventArgs e)
+        {
+            otoczkaOn = !otoczkaOn;
+            Canvas.Invalidate();
+        }
+
+        private void trackBar1_Scroll(object sender, EventArgs e)
+        {
+            DISTANCE = trackBar1.Value;
+            //MessageBox.Show($")
+            foreach (var polygon in polygons)
+            {
+                //var copyPolygon = new Polygon(polygon.outlinePolygon);
+                polygon.PrepareOutline(DISTANCE);
+            }
+
+            Canvas.Invalidate();
         }
     }
 

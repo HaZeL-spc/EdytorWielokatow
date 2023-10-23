@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Security.Policy;
@@ -14,6 +15,7 @@ namespace FirstLab
     {
         public List<Point> polygon = new List<Point>();
         public LinesOptionList linesOption = new LinesOptionList(0);
+        public List<Point> outlinePolygon = new List<Point>();
 
         public Polygon(List<Point> polygon)
         {
@@ -70,6 +72,7 @@ namespace FirstLab
             OptionTypeEnum second = linesOption[index - 1];
 
             (int, int) moveCoords = (x - previousPoint.X, y - previousPoint.Y);
+            //MessageBox.Show($"({moveCoords.Item1}, {moveCoords.Item2})");
             this.polygon[index] = new Point(this.polygon[index].X + moveCoords.Item1, this.polygon[index].Y + moveCoords.Item2);
 
             if (first == OptionTypeEnum.Nothing && second == OptionTypeEnum.Nothing)
@@ -78,7 +81,7 @@ namespace FirstLab
             int count = this.polygon.Count;
             int i;
 
-            for (i = index - 1; i > index - count ; i--)
+            for (i = index - 1; i > index - count; i--)
             {
                 if (linesOption[i] == OptionTypeEnum.Nothing)
                     break;
@@ -87,10 +90,10 @@ namespace FirstLab
                 this[i] = new Point(p.X + moveCoords.Item1, p.Y + moveCoords.Item2);
             }
 
-            int j; 
+            int j;
             for (j = index + 1; j < i + count + 1; j++)
             {
-                if (linesOption[(j - 1)% count] == OptionTypeEnum.Nothing)
+                if (linesOption[(j - 1) % count] == OptionTypeEnum.Nothing)
                     break;
 
                 Point p = this[j % count];
@@ -139,7 +142,167 @@ namespace FirstLab
             }
         }
 
+        public bool CheckIntersectUp(int x, int y)
+        {
+            Point? previousPoint = null;
+            var copyPolygon = new List<Point>(polygon);
+            copyPolygon.Add(polygon[0]);
+            int howManyTimes = 0;
 
+            foreach (var point in copyPolygon)
+            {
+                if (previousPoint != null)
+                {
+                    float x1 = previousPoint.Value.X;
+                    float y1 = previousPoint.Value.Y;
+                    float x2 = point.X;
+                    float y2 = point.Y;
+
+                    if (y > y1 && y > y2)  // line is above
+                    {
+                        if (x <= Math.Max(x1, x2) && x >= Math.Min(x1, x2))
+                            howManyTimes++;
+                    }
+                    else if (x <= Math.Max(x1, x2) && x >= Math.Min(x1, x2) && y <= Math.Max(y1, y2) && y >= Math.Min(y1, y2)) // point is in between
+                    {
+                        int newY = -y;
+                        (float a, float b) = CalculateLinearFunction(x1, y1, x2, y2);
+                        float valueY = a * x + b;
+
+                        //if (a > 0 && y > valueY)
+                        //    return true;
+                        //else if (a < 0 && y < valueY)
+                        //    return true;
+                        if (newY - 5 > valueY) howManyTimes++;
+                    }
+                }
+
+                previousPoint = point;
+            }
+            return howManyTimes % 2 == 1 ? false : true;
+        }
+
+        public static (float, float) NormalizeVec(float x, float y)
+        {
+            float distance = (float)Math.Sqrt(x * x + y * y);
+            return (x/distance, y/distance);
+
+        }
+
+        public void PrepareOutline(int distance)
+        {
+            //int count = this.polygon.Count;
+            //int outer_ccw = 1;
+            //outlinePolygon = new List<Point>();
+
+            //for (int i = 0; i < count; i++)
+            //{
+            //    int prev = (i + count - 1) % count;
+            //    int next = (i + 1) % count;
+
+            //    int vnX = polygon[next].X - polygon[i].X;
+            //    int vnY = polygon[next].Y - polygon[i].Y;
+            //    (float vnnX, float vnnY) = NormalizeVec(vnX, vnY);
+            //    float nnnX = vnnX;
+            //    float nnnY = -vnnY;
+
+            //    int vpX = polygon[i].X - polygon[prev].X;
+            //    int vpY = polygon[i].Y - polygon[prev].Y;
+
+            //    (float vpnX, float vpnY) = NormalizeVec(vpX, vpY);
+
+            //    float npnX = vpnY * outer_ccw;
+            //    float npnY = -vpnX * outer_ccw;
+
+            //    float bisX = (nnnX + npnX) * outer_ccw;
+            //    float bisY = (nnnY + npnY) * outer_ccw;
+
+            //    (float bisnX, float bisnY) = NormalizeVec(bisX, bisY);
+            //    float bislen = (float)(distance / Math.Sqrt((1 + nnnX * npnX + nnnY * npnY) / 2));
+
+            //    float newX = polygon[i].X + bislen * bisnX;
+            //    float newY = polygon[i].Y + bislen * bisnY;
+            //    outlinePolygon.Add(new Point((int)newX, (int)newY));
+            //}
+            this.outlinePolygon = new List<Point>();
+
+            var copyPolygon = new List<Point>(polygon);
+            copyPolygon.Add(polygon[0]);
+            copyPolygon.Add(polygon[1]);
+            Point? previousPoint = null;
+            Point? previousPreviousPoint = null;
+            int x = 0, y = 0;
+            int i = 2;
+            int count = Count();
+            Point firstCenter = FindCenterOfLine(polygon[0], polygon[1]);
+            Point secondCenter = FindCenterOfLine(polygon[1], polygon[2]);
+
+            //(bool, bool) isUp = (CheckIntersectUp(firstCenter.X, firstCenter.Y), CheckIntersectUp(secondCenter.X, secondCenter.Y));
+            (bool, bool) isUp = (false, false);
+
+
+            foreach (var point in copyPolygon)
+            {
+                if (previousPoint != null && previousPreviousPoint != null)
+                {
+                    firstCenter = FindCenterOfLine(previousPreviousPoint.Value, previousPoint.Value);
+                    secondCenter = FindCenterOfLine(previousPoint.Value, point);
+
+                    isUp = (CheckIntersectUp(firstCenter.X, firstCenter.Y), CheckIntersectUp(secondCenter.X, secondCenter.Y));
+
+                    (float a1, float b1) = CalculateLinearFunction(previousPreviousPoint.Value.X, previousPreviousPoint.Value.Y, previousPoint.Value.X, previousPoint.Value.Y);
+                    (float a2, float b2) = CalculateLinearFunction(previousPoint.Value.X, previousPoint.Value.Y, point.X, point.Y);
+
+                    if (float.IsInfinity(a1) || float.IsInfinity(a2))
+                    {
+                        if (float.IsInfinity(a1) && float.IsFinite(a2))
+                        {
+                            (float aNew2, float bNew2) = CalculateParallelLine(a2, b2, true, (float)distance);
+                            (x, y) = (previousPoint.Value.X - distance, (int)(a2 * previousPoint.Value.X + b2 + distance));
+
+                        }
+                        else if (float.IsFinite(a1) && float.IsInfinity(a2))
+                        {
+                            (x, y) = (previousPoint.Value.X - distance, (int)(a1 * previousPoint.Value.X + b1 + distance));
+                        }
+                    }
+                    else
+                    {
+
+
+                        (float aNew1, float bNew1) = CalculateParallelLine(a1, b1, isUp.Item1, (float)distance);
+                        (float aNew2, float bNew2) = CalculateParallelLine(a2, b2, isUp.Item2, (float)distance);
+
+                        (x, y) = FindIntersectionLinearFunction(aNew1, bNew1, aNew2, bNew2);
+                    }
+
+                    //isUp.Item1 = isUp.Item2;
+                    ////if ( point.X - previousPoint.Value.X < 0 && previousPoint.Value.X - previousPreviousPoint.Value.X < 0)
+                    //if (HaveSameSign(point.X - previousPoint.Value.X, previousPoint.Value.X - previousPreviousPoint.Value.X))
+                    //    isUp.Item2 = isUp.Item2;
+                    //else
+                    //    isUp.Item2 = !isUp.Item2;
+                    //isUp = (isUp.Item2, CheckIntersectUp(copyPolygon[i % count].X, copyPolygon[i % count].Y));
+
+                    firstCenter = FindCenterOfLine(previousPreviousPoint.Value, previousPoint.Value);
+                    secondCenter = FindCenterOfLine(previousPoint.Value, point);
+
+
+
+                    outlinePolygon.Add(new Point(x, -y));
+                    i++;
+                }
+                if (previousPoint != null)
+                    previousPreviousPoint = previousPoint;
+
+                previousPoint = point;
+
+
+            }
+
+
+        }
+        
         // Implement the IEnumerable.GetEnumerator method
         public IEnumerator<Point> GetEnumerator()
         {
@@ -294,6 +457,44 @@ namespace FirstLab
                 int distance = point.Y - previousPoint.Y;
                 this.polygon[(index + 1) % Count()] = new Point(previousPoint.X, previousPoint.Y + (int)distance);
             }
+        }
+
+        public static bool HaveSameSign(double expressionA, double expressionB)
+        {
+            if (expressionA > 0 && expressionB > 0)
+            {
+                return true; // Both positive
+            }
+            else if (expressionA < 0 && expressionB < 0)
+            {
+                return true; // Both negative
+            }
+            else if (expressionA == 0 && expressionB == 0)
+            {
+                return true; // Both zero
+            }
+            else
+            {
+                return false; // Different signs
+            }
+        }
+
+
+        public static (float, float) CalculateParallelLine(float a, float b, bool shiftUp, float distance)
+        {
+             distance = shiftUp ? distance : -distance;
+
+            float newB = b + distance * (float)Math.Sqrt(Math.Pow(a, 2) + 1);
+
+            return (a, newB);
+        }
+        
+        public static (int, int) FindIntersectionLinearFunction(float a1, float b1, float a2, float b2)
+        {
+            int x = (int)((b2 - b1) / (a1 - a2));
+            int y = (int)(a1 * x + b1);
+
+            return (x, y);
         }
 
         public static float CalculateDistancePointLine(int x, int y, float a, float b)

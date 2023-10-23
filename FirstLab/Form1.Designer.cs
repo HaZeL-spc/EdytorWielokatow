@@ -32,15 +32,18 @@ namespace FirstLab
         {
             this.splitMainContainer = new System.Windows.Forms.SplitContainer();
             this.Canvas = new System.Windows.Forms.PictureBox();
+            this.checkBoxOtoczka = new System.Windows.Forms.CheckBox();
             this.AlgorytmGroupBox = new System.Windows.Forms.GroupBox();
             this.bibliotecznyRadio = new System.Windows.Forms.RadioButton();
             this.bresenhamRadio = new System.Windows.Forms.RadioButton();
+            this.trackBar1 = new System.Windows.Forms.TrackBar();
             ((System.ComponentModel.ISupportInitialize)(this.splitMainContainer)).BeginInit();
             this.splitMainContainer.Panel1.SuspendLayout();
             this.splitMainContainer.Panel2.SuspendLayout();
             this.splitMainContainer.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.Canvas)).BeginInit();
             this.AlgorytmGroupBox.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.trackBar1)).BeginInit();
             this.SuspendLayout();
             // 
             // splitMainContainer
@@ -59,9 +62,11 @@ namespace FirstLab
             // splitMainContainer.Panel2
             // 
             this.splitMainContainer.Panel2.BackColor = System.Drawing.SystemColors.ControlLight;
+            this.splitMainContainer.Panel2.Controls.Add(this.trackBar1);
+            this.splitMainContainer.Panel2.Controls.Add(this.checkBoxOtoczka);
             this.splitMainContainer.Panel2.Controls.Add(this.AlgorytmGroupBox);
             this.splitMainContainer.Size = new System.Drawing.Size(914, 600);
-            this.splitMainContainer.SplitterDistance = 764;
+            this.splitMainContainer.SplitterDistance = 762;
             this.splitMainContainer.SplitterWidth = 5;
             this.splitMainContainer.TabIndex = 0;
             // 
@@ -71,13 +76,24 @@ namespace FirstLab
             this.Canvas.Location = new System.Drawing.Point(0, 0);
             this.Canvas.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.Canvas.Name = "Canvas";
-            this.Canvas.Size = new System.Drawing.Size(764, 600);
+            this.Canvas.Size = new System.Drawing.Size(762, 600);
             this.Canvas.TabIndex = 0;
             this.Canvas.TabStop = false;
             this.Canvas.Paint += new System.Windows.Forms.PaintEventHandler(this.Canvas_Paint);
             this.Canvas.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Canvas_MouseDown);
             this.Canvas.MouseMove += new System.Windows.Forms.MouseEventHandler(this.Canvas_MouseMove);
             this.Canvas.MouseUp += new System.Windows.Forms.MouseEventHandler(this.Canvas_MouseUp);
+            // 
+            // checkBoxOtoczka
+            // 
+            this.checkBoxOtoczka.AutoSize = true;
+            this.checkBoxOtoczka.Location = new System.Drawing.Point(17, 195);
+            this.checkBoxOtoczka.Name = "checkBoxOtoczka";
+            this.checkBoxOtoczka.Size = new System.Drawing.Size(83, 24);
+            this.checkBoxOtoczka.TabIndex = 3;
+            this.checkBoxOtoczka.Text = "otoczka";
+            this.checkBoxOtoczka.UseVisualStyleBackColor = true;
+            this.checkBoxOtoczka.CheckedChanged += new System.EventHandler(this.checkBoxOtoczka_CheckedChanged);
             // 
             // AlgorytmGroupBox
             // 
@@ -114,6 +130,15 @@ namespace FirstLab
             this.bresenhamRadio.UseVisualStyleBackColor = true;
             this.bresenhamRadio.CheckedChanged += new System.EventHandler(this.bresenhamRadio_CheckedChanged);
             // 
+            // trackBar1
+            // 
+            this.trackBar1.Location = new System.Drawing.Point(11, 236);
+            this.trackBar1.Maximum = 50;
+            this.trackBar1.Name = "trackBar1";
+            this.trackBar1.Size = new System.Drawing.Size(130, 56);
+            this.trackBar1.TabIndex = 4;
+            this.trackBar1.Scroll += new System.EventHandler(this.trackBar1_Scroll);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
@@ -125,11 +150,13 @@ namespace FirstLab
             this.Text = "Form1";
             this.splitMainContainer.Panel1.ResumeLayout(false);
             this.splitMainContainer.Panel2.ResumeLayout(false);
+            this.splitMainContainer.Panel2.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitMainContainer)).EndInit();
             this.splitMainContainer.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.Canvas)).EndInit();
             this.AlgorytmGroupBox.ResumeLayout(false);
             this.AlgorytmGroupBox.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.trackBar1)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -143,5 +170,8 @@ namespace FirstLab
         private RadioButton bresenhamRadio;
 
         public static OptionTypeEnum OptionChosenPopup;
+        private CheckBox checkBoxOtoczka;
+        public bool otoczkaOn = false;
+        private TrackBar trackBar1;
     }
 }
